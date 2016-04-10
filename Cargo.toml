@@ -1,0 +1,13 @@
+[package]
+name = "split_aud"
+version = "0.1.0"
+authors = ["Joshua Holmer <jholmer.in@gmail.com>"]
+description = "Split parts out of an audio file without reencoding, using an Avisynth script's trims"
+repository = "https://github.com/shssoichiro/split_aud"
+readme = "README.md"
+license = "MIT"
+
+[dependencies]
+chrono = "^0.2.21"
+clap = "^2.2.5"
+regex = "^0.1.62"
