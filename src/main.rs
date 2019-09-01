@@ -25,7 +25,7 @@ fn split_audio(opts: &Config) {
     let delay = if let Some(delay_captures) = delay_regex.captures(opts.input_aud
                                                                        .to_str()
                                                                        .unwrap()) {
-        delay_captures.at(1).unwrap().parse::<isize>().unwrap()
+        delay_captures[1].parse::<isize>().unwrap()
     } else {
         0isize
     };
@@ -42,7 +42,7 @@ fn split_audio(opts: &Config) {
     let mut cut_times: Vec<String> = Vec::new();
     for capture_group in trim_regex.captures_iter(&avs_contents) {
         for (_, capture) in capture_group.iter().enumerate().filter(|&(i, _)| i % 3 != 0) {
-            let frame: usize = capture.unwrap().parse().unwrap();
+            let frame: usize = capture.unwrap().as_str().parse().unwrap();
             let seconds: f32 = frame as f32 / opts.framerate;
             let nano: f32 = seconds.fract() * 1_000_000_000f32;
             let timestamp = NaiveTime::from_num_seconds_from_midnight(seconds.trunc() as u32,
