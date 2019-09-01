@@ -37,7 +37,7 @@ fn split_audio(opts: &Config) {
 
     // Determine where to trim
     // This is not the best regex--it takes ALL TRIMS and includes them
-    let trim_regex = Regex::new(r"[tT]rim\((\d+), ?(\d+)\)").unwrap();
+    let trim_regex = Regex::new(r"[tT]rim\((?:\w+, ?)?(\d+), ?(\d+)\)").unwrap();
     // A vector of timestamps for trimming
     let mut cut_times: Vec<String> = Vec::new();
     for capture_group in trim_regex.captures_iter(&avs_contents) {
