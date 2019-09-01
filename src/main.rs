@@ -1,6 +1,4 @@
-extern crate chrono;
-extern crate clap;
-extern crate regex;
+#![warn(clippy::all)]
 
 use chrono::NaiveTime;
 use clap::{App, Arg};
