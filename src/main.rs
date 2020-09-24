@@ -129,7 +129,7 @@ fn main() {
             Arg::with_name("input")
                 .short("i")
                 .long("input")
-                .help("Sets the input aac file to use")
+                .help("Sets the input audio file to use")
                 .takes_value(true)
                 .required(true),
         )
