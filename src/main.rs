@@ -142,7 +142,7 @@ fn main() {
         )
         .arg(
             Arg::with_name("avs")
-                .help("Sets the input avs file to use")
+                .help("Sets the input avs or vpy file to use")
                 .required(true)
                 .takes_value(true)
                 .index(1),
