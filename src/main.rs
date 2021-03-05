@@ -112,6 +112,19 @@ fn split_audio(opts: &Config) {
         .output()
         .unwrap_or_else(|e| panic!("failed to execute process: {}", e));
     println!("{}", String::from_utf8(output.stdout).unwrap());
+
+    println!("Cleaning temporary files...");
+    let split_regex = Regex::new(r"split-(?:\d{3})\.mka$").unwrap();
+    let dir = opts.output_aud.parent().unwrap();
+    for file in dir
+        .read_dir()
+        .unwrap()
+        .filter(Result::is_ok)
+        .map(|file| file.unwrap())
+        .filter(|file| split_regex.is_match(&file.file_name().to_string_lossy()))
+    {
+        let _ = std::fs::remove_file(file.path());
+    }
 }
 
 fn main() {
