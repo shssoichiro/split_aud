@@ -33,10 +33,10 @@ fn split_audio(opts: &Config) {
     avs_file.read_to_string(&mut avs_contents).ok();
 
     // Determine where to trim
-    // This is not the best regex--it takes ALL TRIMS and includes them
-    let trim_regex = Regex::new(r"[tT]rim\((?:\w+, ?)?(\d+), ?(\d+)\)").unwrap();
     // A vector of timestamps for trimming
     let mut cut_times: Vec<String> = Vec::new();
+    // This is not the best regex--it takes ALL TRIMS and includes them
+    let trim_regex = Regex::new(r"[tT]rim\((?:\w+, ?)?(\d+), ?(\d+)\)").unwrap();
     for capture_group in trim_regex.captures_iter(&avs_contents) {
         for (_, capture) in capture_group
             .iter()
@@ -49,6 +49,26 @@ fn split_audio(opts: &Config) {
             let timestamp =
                 NaiveTime::from_num_seconds_from_midnight(seconds.trunc() as u32, nano as u32);
             cut_times.push(timestamp.format("%H:%M:%S%.3f").to_string());
+        }
+    }
+
+    if cut_times.is_empty() {
+        // And for supporting python slice syntax
+        let trim_regex = Regex::new(r"clip\[(\d+): ?(\d+)\]").unwrap();
+        for capture_group in trim_regex.captures_iter(&avs_contents) {
+            for (i, capture) in capture_group
+                .iter()
+                .enumerate()
+                .filter(|&(i, _)| i % 3 != 0)
+            {
+                let frame: usize = capture.unwrap().as_str().parse::<usize>().unwrap()
+                    - if i == 2 { 1 } else { 0 };
+                let seconds: f32 = frame as f32 / opts.framerate;
+                let nano: f32 = seconds.fract() * 1_000_000_000f32;
+                let timestamp =
+                    NaiveTime::from_num_seconds_from_midnight(seconds.trunc() as u32, nano as u32);
+                cut_times.push(timestamp.format("%H:%M:%S%.3f").to_string());
+            }
         }
     }
 
