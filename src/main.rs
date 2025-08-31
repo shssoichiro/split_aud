@@ -47,7 +47,8 @@ fn split_audio(opts: &Config) {
             let seconds: f32 = frame as f32 / opts.framerate;
             let nano: f32 = seconds.fract() * 1_000_000_000f32;
             let timestamp =
-                NaiveTime::from_num_seconds_from_midnight(seconds.trunc() as u32, nano as u32);
+                NaiveTime::from_num_seconds_from_midnight_opt(seconds.trunc() as u32, nano as u32)
+                    .unwrap();
             cut_times.push(timestamp.format("%H:%M:%S%.3f").to_string());
         }
     }
@@ -65,8 +66,11 @@ fn split_audio(opts: &Config) {
                     - if i == 2 { 1 } else { 0 };
                 let seconds: f32 = frame as f32 / opts.framerate;
                 let nano: f32 = seconds.fract() * 1_000_000_000f32;
-                let timestamp =
-                    NaiveTime::from_num_seconds_from_midnight(seconds.trunc() as u32, nano as u32);
+                let timestamp = NaiveTime::from_num_seconds_from_midnight_opt(
+                    seconds.trunc() as u32,
+                    nano as u32,
+                )
+                .unwrap();
                 cut_times.push(timestamp.format("%H:%M:%S%.3f").to_string());
             }
         }
@@ -117,7 +121,7 @@ fn split_audio(opts: &Config) {
         .arg("-o")
         .arg(opts.output_aud.to_str().unwrap())
         .args(
-            &merge_files
+            merge_files
                 .iter()
                 .enumerate()
                 .map(|(i, x)| {
@@ -139,8 +143,7 @@ fn split_audio(opts: &Config) {
     for file in dir
         .read_dir()
         .unwrap()
-        .filter(Result::is_ok)
-        .map(|file| file.unwrap())
+        .flatten()
         .filter(|file| split_regex.is_match(&file.file_name().to_string_lossy()))
     {
         let _ = std::fs::remove_file(file.path());
