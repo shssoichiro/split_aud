@@ -5,8 +5,38 @@ use clap::{App, Arg};
 use regex::Regex;
 use std::fs::File;
 use std::io::Read;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+
+fn get_total_frames(input_path: &Path, framerate: f32) -> isize {
+    let out = match Command::new("ffprobe")
+        .args([
+            "-v",
+            "error",
+            "-select_streams",
+            "a:0",
+            "-show_entries",
+            "format=duration",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+        ])
+        .arg(input_path.to_str().unwrap())
+        .output()
+    {
+        Ok(o) => o,
+        Err(_) => return 0,
+    };
+    if !out.status.success() {
+        return 0;
+    }
+    let output = String::from_utf8_lossy(&out.stdout);
+    let seconds: f64 = output
+        .trim()
+        .parse()
+        .expect("failed to parse audio duration");
+    let total_frames = (seconds * framerate as f64).floor() as isize;
+    if total_frames < 0 { 0 } else { total_frames }
+}
 
 #[derive(Debug, Clone)]
 struct Config {
@@ -55,15 +85,35 @@ fn split_audio(opts: &Config) {
 
     if cut_times.is_empty() {
         // And for supporting python slice syntax
-        let trim_regex = Regex::new(r"clip\[(\d+): ?(\d+)\]").unwrap();
+        let trim_regex = Regex::new(r"clip\[(\d+): ?(-?\d+)\]").unwrap();
+        let mut cached_total_frames: Option<isize> = None;
         for capture_group in trim_regex.captures_iter(&avs_contents) {
             for (i, capture) in capture_group
                 .iter()
                 .enumerate()
                 .filter(|&(i, _)| i % 3 != 0)
             {
-                let frame: usize = capture.unwrap().as_str().parse::<usize>().unwrap()
-                    - if i == 2 { 1 } else { 0 };
+                let value_str = capture.unwrap().as_str();
+                let frame_isize: isize = if i == 2 {
+                    let end_index = value_str.parse::<isize>().unwrap();
+                    if end_index < 0 {
+                        // Support negative end indices which count from the end.
+                        let total_frames = *cached_total_frames.get_or_insert_with(|| {
+                            get_total_frames(&opts.input_aud, opts.framerate)
+                        });
+                        total_frames + end_index
+                    } else {
+                        // For python slice syntax, positive end index is exclusive; adjust by -1.
+                        end_index - 1
+                    }
+                } else {
+                    value_str.parse::<isize>().unwrap()
+                };
+                let frame: usize = if frame_isize < 0 {
+                    0
+                } else {
+                    frame_isize as usize
+                };
                 let seconds: f32 = frame as f32 / opts.framerate;
                 let nano: f32 = seconds.fract() * 1_000_000_000f32;
                 let timestamp = NaiveTime::from_num_seconds_from_midnight_opt(
